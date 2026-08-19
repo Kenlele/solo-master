@@ -1,5 +1,6 @@
 # Solo-Master
 
+雙欄對照式學術論文閱讀與即時翻譯器  
 Dual-Pane Academic Paper Reader & Real-Time Contextual Translator
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.3-black?style=flat-square&logo=next.js)](https://nextjs.org/)
@@ -8,44 +9,44 @@ Dual-Pane Academic Paper Reader & Real-Time Contextual Translator
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-black?style=flat-square)](./LICENSE)
 
-Solo-Master is a distraction-free, full-bleed dual-pane PDF reader designed for researchers and engineers. It renders original vector PDF pages on the left while streaming synchronous Traditional Chinese translation and structural takeaways on the right, equipped with optical freehand annotations, local project persistence, and local AI agent CLI bridges.
+Solo-Master 是一款專為研究員與工程師打造的雙欄滿版學術 PDF 閱讀器。左欄採用向量畫布即時渲染論文原文，右欄即時串流輸出繁體中文翻譯與結構化核心重點；整合光學透光手繪註解系統、本地專案檔案暫存同步機制，以及本地 AI Agent CLI 呼叫橋接。
 
 ---
 
-## Overview
+## 專案概述 (Overview)
 
-Traditional translation workflows for academic papers usually require constant context switching or destroy original document formatting:
-- **Fragmented copy-pasting**: Breaks mathematical notation, disrupts reading flow, and requires constant window switching.
-- **Layout destruction**: Full-page machine translation replaces vector documents with unstable HTML layouts, breaking figures and tables.
-- **Configuration overhead**: Often requires paid API keys and lacks robust local document state persistence.
+傳統學術論文翻譯流程通常伴隨嚴重的上下文切換或排版破壞問題：
+- **段落複製貼上**：數學公式與排版遺失、閱讀節奏中斷，且需頻繁在多視窗間切換。
+- **全頁機器翻譯**：以不穩定的 HTML 取代原始 PDF 向量版面，導致圖表與表格錯位走鐘。
+- **繁瑣設定依賴**：常需綁定付費 API Key，且欠缺穩健的本地閱讀狀態與筆記持久化。
 
-Solo-Master addresses these issues with a synchronous, 1:1 original-to-translation split-view engine that maintains vector fidelity while providing real-time academic translation.
-
----
-
-## Key Capabilities
-
-### 1. Synchronous Dual-Pane Reader
-- **1:1 Viewport Tracking**: Dynamically observes visible PDF pages and streams real-time Traditional Chinese translation alongside key technical takeaways.
-- **Full-Bleed Layout**: Minimalist workspace with dashed resizable divider and zero unnecessary UI chrome.
-
-### 2. Optical Freehand Annotation Engine
-- **Non-Obscuring Highlighter**: Uses hardware-accelerated optical multiply blending (`mix-blend-mode: multiply`), ensuring handwritten highlights never occlude underlying vector text.
-- **Selective Stroke Eraser**: Distance-based vector segment hit testing for single-stroke removal.
-- **Undo & Stroke Control**: History stack with `Ctrl+Z` / `⌘Z` support and fine/medium/thick stroke presets.
-
-### 3. Local Storage Sync & Persistence
-- **Automatic Document Cache**: Uploaded papers are mirrored to the local project storage directory (`storage/papers/`), eliminating missing path issues upon history reload.
-- **Synchronized Cleanup**: Removing documents from history automatically cleans up associated files on disk.
-- **Drag-to-Open Everywhere**: Dropping a new PDF anywhere in the viewer instantly archives current reading progress and loads the new document.
-
-### 4. Agent & CLI Integration
-- **Slash Command Support**: Native Antigravity agent skill (`/solo-master <path>`) for opening papers directly from agent conversations.
-- **Terminal Bridge**: Standalone Node CLI connector for pushing local PDF paths from external shell sessions.
+Solo-Master 透過 1:1 原文對照分割引擎解決上述問題，在維持 PDF 原文向量排版精度的同時，提供低延遲的學術繁中即時翻譯。
 
 ---
 
-## Architecture
+## 核心能力 (Key Capabilities)
+
+### 1. 雙欄同步對照閱讀器 (Synchronous Dual-Pane Reader)
+- **視口即時追蹤**：動態感測當前可視 PDF 頁面，即時串流輸出繁體中文翻譯與技術要點整理。
+- **滿版無干擾佈局**：極簡白淨介面，配備可拖曳調節寬度的虛線分隔線，消除冗餘操作干擾。
+
+### 2. 光學手繪註解引擎 (Optical Freehand Annotation Engine)
+- **真·光學透光螢光筆**：採用硬體加速光學乘法混合模式（`mix-blend-mode: multiply`），手繪筆跡 100% 不遮擋底層英文黑字印刷。
+- **單筆點選橡皮擦**：基於向量線段距離演算法，點擊單一筆跡即可獨立刪除，不誤清整頁標記。
+- **復原與筆觸控制**：內建歷史操作堆疊，支援快捷鍵 `Ctrl + Z` / `⌘ + Z` 復原上一筆，提供細／中／粗三段筆觸預設。
+
+### 3. 本地儲存同步與持久化 (Local Storage Sync & Persistence)
+- **自動本機暫存**：上傳之論文自動備份至專案本地目錄（`storage/papers/`），徹底消除重啟後歷史路徑丟失問題。
+- **連動安全清理**：於歷史紀錄點選刪除時，同步清理磁碟對應檔案，避免無效佔用空間。
+- **全視窗隨時拖曳即開**：在閱讀過程中將新 PDF 拖入視窗任意處，系統自動封裝歸檔舊文並即刻加載新論文。
+
+### 4. Agent 與 CLI 整合 (Agent & CLI Integration)
+- **Slash Command 支援**：內建 Antigravity Agent Skill（`/solo-master <path>`），可直接於 Agent 對話中開啟指定論文。
+- **終端機連線工具**：提供獨立 Node CLI 橋接腳本，支援自外部 Shell 終端推送本機 PDF 路徑至閱讀器。
+
+---
+
+## 系統架構 (Architecture)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -53,17 +54,17 @@ Solo-Master addresses these issues with a synchronous, 1:1 original-to-translati
 ├──────────────┬───────────────────────────────┬──────────────────────────────┤
 │ Left Sidebar │ Left Column: Original PDF     │ Right Column: Live Stream    │
 │              │                               │                              │
-│ - History    │ - Vector Canvas Layer (PDF.js)│ - Neural Academic Translation│
-│ - Bookmarks  │ - Freehand Optical Overlay    │ - Structural Key Takeaways   │
-│ - Local Sync │ - Window-Wide Drag & Drop     │ - Agent Bridge Status        │
+│ - 閱讀歷史   │ - PDF.js 向量畫布渲染層       │ - 神經網路學術繁中即時翻譯   │
+│ - 筆記標記   │ - 光學透光手繪註解層          │ - 結構化核心重點提煉         │
+│ - 本地同步   │ - 全視窗拖曳開文監聽          │ - 本地 Agent 橋接連線狀態    │
 └──────────────┴───────────────────────────────┴──────────────────────────────┘
 ```
 
 ---
 
-## Getting Started
+## 快速開始 (Getting Started)
 
-### Installation
+### 環境安裝
 
 ```bash
 git clone https://github.com/Kenlele/solo-master.git
@@ -71,7 +72,7 @@ cd solo-master
 npm install
 ```
 
-### Development
+### 啟動服務
 
 ```bash
 npm run dev
@@ -79,22 +80,22 @@ npm run dev
 
 ---
 
-## Agent & CLI Usage
+## Agent 與 CLI 使用說明 (Usage)
 
-### CLI Push
-Push any local PDF into the reader from a terminal session:
+### 終端機 CLI 推送
+於本機終端機將指定 PDF 檔案推送至閱讀器：
 
 ```bash
 npm run solo-master -- /path/to/paper.pdf
 ```
 
-Or execute directly via Node:
+或直接以 Node 執行：
 ```bash
 node bin/solo-master.mjs /path/to/paper.pdf
 ```
 
-### Agent Skill
-When interacting with an AI agent in the workspace, trigger the built-in skill:
+### AI Agent Skill 呼叫
+於工作區與 AI Agent 對話時，可直接輸入 Slash Command 指令：
 
 ```text
 /solo-master ./path/to/paper.pdf
@@ -102,45 +103,45 @@ When interacting with an AI agent in the workspace, trigger the built-in skill:
 
 ---
 
-## Tech Stack
+## 技術棧 (Tech Stack)
 
-| Layer | Technology |
+| 層級 (Layer) | 技術選型 (Technology) |
 | :--- | :--- |
-| **Framework** | Next.js 16 (App Router, Turbopack) |
-| **Runtime & Language** | React 19, TypeScript 5, Node.js |
-| **Styling** | Tailwind CSS v4, Lucide Icons |
-| **PDF Rendering** | Mozilla PDF.js v5.x |
-| **State & Cache** | Zustand, IndexedDB, Local Disk Storage (`storage/papers/`) |
-| **Translation** | Neural Academic Chinese Translation Stream (with Ollama bridge) |
+| **應用框架 (Framework)** | Next.js 16 (App Router, Turbopack) |
+| **執行環境與語言 (Runtime & Language)** | React 19, TypeScript 5, Node.js |
+| **樣式系統 (Styling)** | Tailwind CSS v4, Lucide Icons |
+| **PDF 核心引擎 (PDF Rendering)** | Mozilla PDF.js v5.x |
+| **狀態與快取 (State & Cache)** | Zustand, IndexedDB, 本地伺服器磁碟存儲 (`storage/papers/`) |
+| **翻譯引擎 (Translation Engine)** | 神經網路學術翻譯串流（支援本地 Ollama 守護進程自動掛載） |
 
 ---
 
-## Project Structure
+## 專案目錄結構 (Project Structure)
 
 ```text
 solo_master/
-├── .agent/skills/solo-master/   # Agent skill definitions
+├── .agent/skills/solo-master/   # Agent Skill 指令定義檔
 ├── bin/
-│   └── solo-master.mjs          # Standalone CLI bridge
+│   └── solo-master.mjs          # 獨立 CLI 終端推送橋接腳本
 ├── src/
 │   ├── app/
 │   │   ├── api/agent/
-│   │   │   ├── file/            # Local storage read/delete endpoint
-│   │   │   ├── open-pdf/        # Agent CLI bridge endpoint
-│   │   │   └── stream/          # Translation streaming route
-│   │   └── page.tsx             # Root workspace container
+│   │   │   ├── file/            # 本地暫存檔案讀取與刪除端點
+│   │   │   ├── open-pdf/        # Agent CLI 接收端點
+│   │   │   └── stream/          # 學術翻譯 SSE 串流路由
+│   │   └── page.tsx             # 雙欄核心入口容器
 │   ├── components/
-│   │   ├── agent/               # Translation stream view & status
-│   │   ├── layout/              # SplitView & document history drawer
-│   │   └── pdf/                 # PDF page canvas & annotation overlay
-│   ├── hooks/                   # PDF.js render pipeline & agent stream
-│   ├── lib/                     # IndexedDB binary persistence
-│   └── store/                   # Zustand global state management
-└── storage/papers/              # Local server-side PDF storage cache
+│   │   ├── agent/               # 即時翻譯視圖與 Agent 狀態指示
+│   │   ├── layout/              # 滿版 SplitView 與歷史閱讀側邊欄
+│   │   └── pdf/                 # PDF 畫布與光學手繪註解層
+│   ├── hooks/                   # PDF.js 渲染與 Agent 串流 Hook
+│   ├── lib/                     # IndexedDB 二進位本地持久化模組
+│   └── store/                   # Zustand 全域狀態管理
+└── storage/papers/              # 本機論文暫存資料夾 (自動維護)
 ```
 
 ---
 
-## License
+## 授權協議 (License)
 
-This project is licensed under the [MIT License](./LICENSE).
+本專案採用 [MIT License](./LICENSE) 授權開源。
