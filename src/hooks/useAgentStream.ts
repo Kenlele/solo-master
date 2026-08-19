@@ -7,19 +7,13 @@ export function useAgentStream() {
   const [isStreaming, setIsStreaming] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const {
-    translationsCache,
-    setTranslation,
-    appendTranslationStream,
-  } = useReaderStore();
-
   /**
    * Translate specific page text via Local Agent Stream
    */
   const translatePage = useCallback(
     async (pageNumber: number, text: string, force: boolean = false) => {
       if (!text || text.trim().length === 0) {
-        setTranslation(pageNumber, {
+        useReaderStore.getState().setTranslation(pageNumber, {
           status: 'completed',
           originalText: '',
           translatedMarkdown: '*(此頁面無可提取的文字內容或為純圖像)*',
@@ -27,7 +21,9 @@ export function useAgentStream() {
         return;
       }
 
-      // Check cache: verify cache exists, is completed, and actually contains Chinese characters
+      const { translationsCache, setTranslation, appendTranslationStream } = useReaderStore.getState();
+
+      // Check cache unless forced: verify cache exists and is completed
       const cached = translationsCache[pageNumber];
       const hasChinese = cached?.translatedMarkdown && /[\u4e00-\u9fa5]/.test(cached.translatedMarkdown);
 
@@ -97,27 +93,27 @@ export function useAgentStream() {
                     appendTranslationStream(pageNumber, contentChunk);
                   }
                 } catch {
-                  // ignore chunk json error
+                  // ignore chunk parse errors
                 }
               }
             }
           }
         }
 
-        setTranslation(pageNumber, { status: 'completed' });
+        useReaderStore.getState().setTranslation(pageNumber, { status: 'completed' });
       } catch (err: any) {
         if (err?.name === 'AbortError') return;
 
         console.error('Translation error:', err);
-        setTranslation(pageNumber, {
+        useReaderStore.getState().setTranslation(pageNumber, {
           status: 'error',
-          error: err?.message || '翻譯服務連線失敗',
+          error: err?.message || '翻譯服務連線失敗，請點擊重試。',
         });
       } finally {
         setIsStreaming(false);
       }
     },
-    [translationsCache, setTranslation, appendTranslationStream]
+    []
   );
 
   return {
