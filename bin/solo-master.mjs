@@ -3,7 +3,6 @@
 import fs from 'fs';
 import path from 'path';
 import http from 'http';
-import { exec } from 'child_process';
 
 const args = process.argv.slice(2);
 const targetFile = args[0];
@@ -36,7 +35,7 @@ if (!fs.existsSync(resolvedPath)) {
 }
 
 const fileName = path.basename(resolvedPath);
-console.log(`\x1b[33m⏳ 正在讀取並推送 ${fileName} 至 Web 雙欄閱讀器 (http://localhost:3000)... \x1b[0m`);
+console.log(`\x1b[33m⏳ 正在讀取並推送 ${fileName} 至 Web 雙欄閱讀器... \x1b[0m`);
 
 const fileBuffer = fs.readFileSync(resolvedPath);
 const base64Data = fileBuffer.toString('base64');
@@ -46,12 +45,6 @@ const postData = JSON.stringify({
   base64Data,
   filePath: resolvedPath,
 });
-
-function openBrowser() {
-  const url = 'http://localhost:3000';
-  const start = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-  exec(`${start} ${url}`, () => {});
-}
 
 const req = http.request(
   {
@@ -71,22 +64,19 @@ const req = http.request(
       try {
         const json = JSON.parse(data);
         if (res.statusCode === 200 && json.success) {
-          console.log(`\x1b[32m✨ 成功！已在 Web 閱讀器中開啟: ${fileName}\x1b[0m`);
-          console.log(`\x1b[36m👉 瀏覽器已自動開啟 http://localhost:3000 (左欄原文、右欄繁中翻譯與光學螢光筆)\x1b[0m`);
-          openBrowser();
+          console.log(`\x1b[32m✨ 成功！已在當前 Web 閱讀器中開啟: ${fileName}\x1b[0m`);
         } else {
           console.error(`\x1b[31m❌ 推送失敗: ${json.error || data}\x1b[0m`);
         }
       } catch {
-        console.log(`\x1b[32m✨ 已發送指令至 http://localhost:3000\x1b[0m`);
-        openBrowser();
+        console.log(`\x1b[32m✨ 已發送指令至 Web 閱讀器\x1b[0m`);
       }
     });
   }
 );
 
 req.on('error', (e) => {
-  console.error(`\x1b[31m❌ 連線至 Web 服務失敗 (http://localhost:3000): ${e.message}\x1b[0m`);
+  console.error(`\x1b[31m❌ 連線至 Web 服務失敗: ${e.message}\x1b[0m`);
   console.log(`\x1b[33m💡 請確認是否已在終端機執行: npm run dev\x1b[0m`);
 });
 

@@ -2,21 +2,29 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useReaderStore } from '@/store/useReaderStore';
-import { usePDFViewer } from '@/hooks/usePDFViewer';
 import { LeftSidebar } from './LeftSidebar';
 import { PDFViewer } from '../pdf/PDFViewer';
 import { TranslationView } from '../agent/TranslationView';
-import { GripVertical, UploadCloud } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 
 export function SplitView() {
   const { splitRatio, setSplitRatio } = useReaderStore();
-  const { loadPdf } = usePDFViewer();
-
   const containerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [isGlobalDragOver, setIsGlobalDragOver] = useState(false);
-  const dragCounterRef = useRef(0);
+
+  // Prevent browser default behavior of navigating away when dropping files outside DropZone
+  useEffect(() => {
+    const preventDragDefault = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('dragover', preventDragDefault);
+    window.addEventListener('drop', preventDragDefault);
+    return () => {
+      window.removeEventListener('dragover', preventDragDefault);
+      window.removeEventListener('drop', preventDragDefault);
+    };
+  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -51,56 +59,8 @@ export function SplitView() {
     };
   }, [setSplitRatio]);
 
-  // Global Drag & Drop Handler (allows dropping a new PDF at any time while reading)
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current += 1;
-    if (e.dataTransfer.types.includes('Files')) {
-      setIsGlobalDragOver(true);
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current -= 1;
-    if (dragCounterRef.current <= 0) {
-      setIsGlobalDragOver(false);
-      dragCounterRef.current = 0;
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsGlobalDragOver(false);
-    dragCounterRef.current = 0;
-
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-        await loadPdf(file);
-      } else {
-        alert('請上傳 PDF 格式論文檔案 (.pdf)');
-      }
-    }
-  };
-
   return (
-    <div
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className="h-screen w-screen flex overflow-hidden select-none bg-white relative"
-    >
+    <div className="h-screen w-screen flex overflow-hidden select-none bg-white">
       {/* 1. 最左側功能 Bar：歷史閱讀紀錄與筆記 */}
       <LeftSidebar />
 
@@ -140,21 +100,6 @@ export function SplitView() {
           <TranslationView />
         </div>
       </div>
-
-      {/* Global Drag-to-Open Overlay (when dragging new PDF over window) */}
-      {isGlobalDragOver && (
-        <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-8 border-4 border-dashed border-zinc-500 animate-in fade-in duration-150 pointer-events-none">
-          <div className="w-16 h-16 rounded-3xl bg-zinc-900 text-white flex items-center justify-center mb-4 shadow-xl scale-110 transition-transform">
-            <UploadCloud className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-bold text-zinc-900 mb-2">
-            放開以開啟新論文
-          </h2>
-          <p className="text-sm text-zinc-500 max-w-sm text-center">
-            當前閱讀的論文與手繪筆記將自動保存至左側「歷史紀錄」，並立即切換至新文章。
-          </p>
-        </div>
-      )}
     </div>
   );
 }
