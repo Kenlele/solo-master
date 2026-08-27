@@ -13,7 +13,7 @@ export function AgentStatusBadge() {
     status: string;
     port: number;
   }>({
-    name: 'Antigravity Agent',
+    name: '',
     status: 'connected',
     port: 3000,
   });
@@ -75,7 +75,7 @@ export function AgentStatusBadge() {
       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
       <span className="font-semibold text-zinc-900 flex items-center gap-1">
         <Terminal className="w-3 h-3 text-zinc-600" />
-        Agent: {agentStatus.name}
+        Agent: {agentStatus.name || 'Antigravity Agent'}
       </span>
       <span className="text-zinc-400">· Ready</span>
     </div>

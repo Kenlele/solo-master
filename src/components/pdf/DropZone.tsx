@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Upload, Sparkles } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { usePDFViewer } from '@/hooks/usePDFViewer';
 
 interface DropZoneProps {
   onFileSelect?: (file: File) => void;
-  onSampleSelect?: (url: string, name: string) => void;
 }
 
-export function DropZone({ onFileSelect, onSampleSelect }: DropZoneProps) {
+export function DropZone({ onFileSelect }: DropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { loadPdf, isLoading } = usePDFViewer();
@@ -56,21 +55,6 @@ export function DropZone({ onFileSelect, onSampleSelect }: DropZoneProps) {
     }
   };
 
-  const handleLoadSample = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const url = 'https://arxiv.org/pdf/1706.03762.pdf';
-    const name = 'Attention_Is_All_You_Need.pdf';
-    if (onSampleSelect) {
-      onSampleSelect(url, name);
-    } else {
-      try {
-        await loadPdf(url, name);
-      } catch {
-        alert('線上範例載入失敗，請直接從本地拖入 PDF 檔案。');
-      }
-    }
-  };
-
   return (
     <div
       onDragOver={handleDragOver}
@@ -104,18 +88,9 @@ export function DropZone({ onFileSelect, onSampleSelect }: DropZoneProps) {
           {isLoading ? '正在載入並解析論文...' : '拖曳論文 PDF 至此處'}
         </h3>
         
-        <p className="text-xs text-zinc-400 mb-6">
+        <p className="text-xs text-zinc-400">
           或點擊選擇本機檔案，左側將立即呈現原文，右側即時翻譯
         </p>
-
-        <button
-          type="button"
-          onClick={handleLoadSample}
-          className="px-4 py-2 rounded-xl text-xs bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border border-zinc-200 transition-colors flex items-center gap-1.5 font-medium"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
-          載入範例論文 (Attention Is All You Need)
-        </button>
       </div>
     </div>
   );

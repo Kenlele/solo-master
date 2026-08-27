@@ -94,12 +94,7 @@ export function PDFViewer() {
   }, [currentPage, totalPages, setScale, undoStroke]);
 
   if (!file) {
-    return (
-      <DropZone 
-        onFileSelect={(f) => loadPdf(f)}
-        onSampleSelect={(url, name) => loadPdf(url, name)}
-      />
-    );
+    return <DropZone onFileSelect={(f) => loadPdf(f)} />;
   }
 
   const HIGHLIGHTER_COLORS = [

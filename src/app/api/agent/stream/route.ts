@@ -190,8 +190,12 @@ export async function POST(req: NextRequest) {
   try {
     const { pageNumber = 1, text = '' } = await req.json();
 
-    // 1. Check if local Ollama daemon or LM Studio is active
+    // 1. Check if user configured local LLM env or default Ollama / LM Studio daemon is active
+    const customEndpoint = process.env.LOCAL_LLM_URL || (process.env.OLLAMA_HOST ? `${process.env.OLLAMA_HOST}/v1/chat/completions` : null);
+    const customModel = process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || 'llama3.2';
+
     const localEndpoints = [
+      ...(customEndpoint ? [{ url: customEndpoint, model: customModel }] : []),
       { url: 'http://localhost:11434/v1/chat/completions', model: 'llama3.2' },
       { url: 'http://localhost:11434/v1/chat/completions', model: 'llama3:8b' },
       { url: 'http://localhost:1234/v1/chat/completions', model: 'local-model' },

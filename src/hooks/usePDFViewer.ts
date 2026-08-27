@@ -101,7 +101,7 @@ export function usePDFViewer() {
         } else if (source instanceof ArrayBuffer) {
           arrayBuffer = source;
           fileSize = source.byteLength;
-          docId = customFilePath ? `doc-${customFilePath}` : `doc-${fileName}-${fileSize}`;
+          docId = `doc-${fileName}-${fileSize}`;
           loadingTask = pdfjs.getDocument({
             data: new Uint8Array(source),
             cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
@@ -129,8 +129,8 @@ export function usePDFViewer() {
 
         } else {
           // Remote URL or local API URL
-          fileName = customName || source.split('/').pop() || 'remote-paper.pdf';
-          docId = customFilePath ? `doc-${customFilePath}` : `doc-${source}`;
+          fileName = customName || source.split('/').pop() || 'paper.pdf';
+          docId = `doc-${fileName}`;
           loadingTask = pdfjs.getDocument({
             url: source,
             cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,

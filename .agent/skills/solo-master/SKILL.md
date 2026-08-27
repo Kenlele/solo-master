@@ -19,12 +19,12 @@ Use this skill whenever the user wants to open and read a PDF paper with the **S
 ## Execution Steps
 
 1. **Verify if the Web App is Running**:
-   Check if `http://localhost:3000` is accessible. If not running, inform the user or launch `npm run dev` in the workspace directory `/Users/yonglinlai/Desktop/solo_master`.
+   Check if `http://localhost:3000` is accessible. If not running, inform the user or launch `npm run dev` in the project workspace root.
 
 2. **Send the PDF to the Web Reader**:
    Run the CLI connector script with the user-provided PDF path:
    ```bash
-   node /Users/yonglinlai/Desktop/solo_master/bin/solo-master.mjs "<pdf_path>"
+   node bin/solo-master.mjs "<pdf_path>"
    ```
 
 3. **Verify Open Status**:
