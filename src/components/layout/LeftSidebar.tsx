@@ -44,8 +44,25 @@ export function LeftSidebar() {
     .filter((pageNum) => docAnnotations[pageNum] && docAnnotations[pageNum].length > 0)
     .sort((a, b) => a - b);
 
+  const handleJumpToPage = (pageNum: number) => {
+    setCurrentPage(pageNum);
+    const pageEl = document.getElementById(`pdf-page-${pageNum}`);
+    if (pageEl) {
+      pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      pageEl.classList.add('ring-4', 'ring-yellow-400/80');
+      setTimeout(() => {
+        pageEl.classList.remove('ring-4', 'ring-yellow-400/80');
+      }, 900);
+    }
+  };
+
   const handleOpenFromHistory = async (item: DocumentHistoryItem) => {
-    if (file?.id === item.id) return;
+    if (file?.id === item.id) {
+      if (item.lastReadPage) {
+        handleJumpToPage(item.lastReadPage);
+      }
+      return;
+    }
     setLoadingDocId(item.id);
 
     try {
@@ -309,7 +326,7 @@ export function LeftSidebar() {
                   return (
                     <div
                       key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
+                      onClick={() => handleJumpToPage(pageNum)}
                       className={`group p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                         isCurrent
                           ? 'bg-yellow-50/90 border-yellow-300 text-yellow-950 font-medium shadow-xs'
