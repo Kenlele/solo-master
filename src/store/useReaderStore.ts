@@ -9,6 +9,12 @@ import {
   DrawStroke
 } from '@/types/reader';
 
+export const DEFAULT_SYSTEM_PROMPT = `你是一位頂尖專業的電腦科學與 AI 學術論文翻譯專家。請將輸入的英文學術內容翻譯為專業、通順、精準的台灣繁體中文。
+要求：
+1. 【純翻譯】：100% 忠實對照原文逐段翻譯，嚴禁輸出任何結論、心得、額外解讀或摘要。
+2. 【專有名詞】：專業術語請保留中英對照（例如：自注意力機制 Self-Attention、多頭注意力機制 Multi-Head Attention、殘差連接 Residual Connection、位置編碼 Positional Encoding）。
+3. 【排版與公式】：完整保留數學符號、公式變數（如 $W_Q$, $\text{Softmax}$）與原始段落層次。`;
+
 export const useReaderStore = create<ReaderState>()(
   persist(
     (set, get) => ({
@@ -31,11 +37,26 @@ export const useReaderStore = create<ReaderState>()(
       splitRatio: 50,
       isStreaming: false,
 
-      // Cache
+      // Cache & Translation Settings
       extractedPages: {},
       translationsCache: {},
+      translationSettings: {
+        systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        provider: 'auto',
+        apiKey: '',
+        apiEndpoint: '',
+        modelName: '',
+      },
 
       // Actions
+      setTranslationSettings: (newSettings) =>
+        set((state) => ({
+          translationSettings: {
+            ...state.translationSettings,
+            ...newSettings,
+          },
+        })),
+
       setFile: (file: PDFFileInfo | null) => {
         const prevFile = get().file;
         const prevPage = get().currentPage;
@@ -329,6 +350,7 @@ export const useReaderStore = create<ReaderState>()(
         history: state.history,
         annotations: state.annotations,
         isLeftSidebarOpen: state.isLeftSidebarOpen,
+        translationSettings: state.translationSettings,
       }),
     }
   )

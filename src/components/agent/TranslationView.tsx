@@ -13,9 +13,13 @@ import {
   Send,
   X,
   Languages,
-  ArrowLeft
+  ArrowLeft,
+  Settings,
+  Sliders,
+  RotateCcw,
+  Bot
 } from 'lucide-react';
-import { useReaderStore } from '@/store/useReaderStore';
+import { useReaderStore, DEFAULT_SYSTEM_PROMPT } from '@/store/useReaderStore';
 import { useAgentStream } from '@/hooks/useAgentStream';
 import { AgentStatusBadge } from '@/components/layout/AgentStatusBadge';
 
@@ -25,10 +29,20 @@ export function TranslationView() {
     currentPage,
     extractedPages,
     translationsCache,
+    translationSettings,
+    setTranslationSettings,
   } = useReaderStore();
 
   const { translatePage, translateCustomText, isStreaming } = useAgentStream();
   const [copied, setCopied] = useState(false);
+
+  // Settings Modal State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [tempPrompt, setTempPrompt] = useState(translationSettings?.systemPrompt || DEFAULT_SYSTEM_PROMPT);
+  const [tempProvider, setTempProvider] = useState(translationSettings?.provider || 'auto');
+  const [tempEndpoint, setTempEndpoint] = useState(translationSettings?.apiEndpoint || '');
+  const [tempModel, setTempModel] = useState(translationSettings?.modelName || '');
+  const [tempApiKey, setTempApiKey] = useState(translationSettings?.apiKey || '');
 
   // Custom User Input Translation States
   const [customInput, setCustomInput] = useState('');
@@ -46,6 +60,40 @@ export function TranslationView() {
 
   const currentText = extractedPages[currentPage] || '';
   const currentTranslation = translationsCache[currentPage];
+
+  // Sync settings state when opening modal
+  const handleOpenSettings = () => {
+    setTempPrompt(translationSettings?.systemPrompt || DEFAULT_SYSTEM_PROMPT);
+    setTempProvider(translationSettings?.provider || 'auto');
+    setTempEndpoint(translationSettings?.apiEndpoint || '');
+    setTempModel(translationSettings?.modelName || '');
+    setTempApiKey(translationSettings?.apiKey || '');
+    setIsSettingsOpen(true);
+  };
+
+  const handleSaveSettings = () => {
+    setTranslationSettings({
+      systemPrompt: tempPrompt,
+      provider: tempProvider as any,
+      apiEndpoint: tempEndpoint,
+      modelName: tempModel,
+      apiKey: tempApiKey,
+    });
+    setIsSettingsOpen(false);
+
+    // Re-trigger translation with new prompt & settings
+    setTimeout(() => {
+      if (isCustomActive && customResult.original) {
+        handleCustomSubmit();
+      } else if (currentText) {
+        translatePage(currentPage, currentText, true);
+      }
+    }, 50);
+  };
+
+  const handleResetPrompt = () => {
+    setTempPrompt(DEFAULT_SYSTEM_PROMPT);
+  };
 
   // Auto trigger page translation on page change if text is available (only in default page mode)
   useEffect(() => {
@@ -134,7 +182,7 @@ export function TranslationView() {
   const hasContent = !!activeMarkdown;
 
   return (
-    <div className="flex flex-col h-full bg-white text-zinc-800 overflow-hidden">
+    <div className="flex flex-col h-full bg-white text-zinc-800 overflow-hidden relative">
       {/* 1. Top Header: Status Badge & Actions */}
       <div className="h-12 border-b border-zinc-200/70 px-4 md:px-6 flex items-center justify-between shrink-0 bg-white/80 backdrop-blur-xs">
         <div className="flex items-center gap-2">
@@ -159,6 +207,15 @@ export function TranslationView() {
 
         <div className="flex items-center gap-2">
           <AgentStatusBadge />
+
+          <button
+            onClick={handleOpenSettings}
+            title="設定 AI 翻譯 Prompt 與模型"
+            className="p-1.5 text-zinc-500 hover:text-zinc-900 rounded-lg hover:bg-zinc-100 transition-colors flex items-center gap-1 text-xs cursor-pointer border border-zinc-200/80 bg-zinc-50/50"
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Prompt 設定</span>
+          </button>
 
           <div className="flex items-center gap-1 pl-1 border-l border-zinc-200">
             <button
@@ -301,6 +358,189 @@ export function TranslationView() {
           )}
         </div>
       </div>
+
+      {/* 5. Prompt & Translation Settings Modal Dialog */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-zinc-200 max-w-xl w-full flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 md:px-6 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/70">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white flex items-center justify-center shadow-xs">
+                  <Bot className="w-4 h-4 text-yellow-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900">AI 翻譯 Agent 與 Prompt 設定</h3>
+                  <p className="text-[11px] text-zinc-500">自訂學術翻譯提示詞、切換本地 Ollama 或自訂 LLM API</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsSettingsOpen(false)}
+                className="p-1 text-zinc-400 hover:text-zinc-700 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 md:p-6 overflow-y-auto space-y-4 text-xs">
+              {/* Section 1: System Prompt */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-semibold text-zinc-800 flex items-center gap-1.5">
+                    <span>📝 System Prompt (系統翻譯提示詞)</span>
+                  </label>
+                  <button
+                    onClick={handleResetPrompt}
+                    type="button"
+                    className="text-[11px] text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer font-medium"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    恢復預設 Prompt
+                  </button>
+                </div>
+                <p className="text-[11px] text-zinc-400 mb-2 leading-relaxed">
+                  您可以直接編輯此 Prompt，自訂翻譯風格、學術用語規範、保留中英對照規則等：
+                </p>
+                <textarea
+                  rows={7}
+                  value={tempPrompt}
+                  onChange={(e) => setTempPrompt(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-zinc-200 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 font-mono text-[11px] text-zinc-800 leading-relaxed bg-[#fdfdfd] custom-scrollbar resize-y"
+                  placeholder="輸入自訂翻譯 System Prompt..."
+                />
+              </div>
+
+              {/* Section 2: Engine & Provider Selection */}
+              <div className="pt-3 border-t border-zinc-200/80 space-y-3">
+                <label className="font-semibold text-zinc-800 block">
+                  ⚙️ 翻譯提供商 (Translation Provider)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTempProvider('auto')}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                      tempProvider === 'auto'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
+                        : 'bg-zinc-50/70 hover:bg-zinc-100 text-zinc-700 border-zinc-200'
+                    }`}
+                  >
+                    <div className="font-semibold text-xs mb-0.5">⚡ 智慧雙引擎</div>
+                    <div className={`text-[10px] leading-tight ${tempProvider === 'auto' ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                      Google Web + MyMemory 免費高速純翻譯（免 Key 即開即用）
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTempProvider('ollama')}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                      tempProvider === 'ollama'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
+                        : 'bg-zinc-50/70 hover:bg-zinc-100 text-zinc-700 border-zinc-200'
+                    }`}
+                  >
+                    <div className="font-semibold text-xs mb-0.5">🦙 本地 Ollama</div>
+                    <div className={`text-[10px] leading-tight ${tempProvider === 'ollama' ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                      本機大模型 (預設 http://localhost:11434 / llama3.2)
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTempProvider('custom_llm')}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                      tempProvider === 'custom_llm'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
+                        : 'bg-zinc-50/70 hover:bg-zinc-100 text-zinc-700 border-zinc-200'
+                    }`}
+                  >
+                    <div className="font-semibold text-xs mb-0.5">🤖 自訂 LLM API</div>
+                    <div className={`text-[10px] leading-tight ${tempProvider === 'custom_llm' ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                      OpenAI / DeepSeek / Claude / 自訂 Endpoint
+                    </div>
+                  </button>
+                </div>
+
+                {/* Custom LLM or Ollama fields */}
+                {(tempProvider === 'ollama' || tempProvider === 'custom_llm') && (
+                  <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2.5 mt-2 animate-in fade-in">
+                    <div>
+                      <label className="block text-[11px] font-medium text-zinc-600 mb-1">
+                        API Endpoint URL
+                      </label>
+                      <input
+                        type="text"
+                        value={tempEndpoint}
+                        onChange={(e) => setTempEndpoint(e.target.value)}
+                        placeholder={
+                          tempProvider === 'ollama'
+                            ? 'http://localhost:11434/v1/chat/completions'
+                            : 'https://api.openai.com/v1/chat/completions 或 https://api.deepseek.com/v1/chat/completions'
+                        }
+                        className="w-full p-2 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-zinc-500 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-zinc-600 mb-1">
+                        Model 模型名稱
+                      </label>
+                      <input
+                        type="text"
+                        value={tempModel}
+                        onChange={(e) => setTempModel(e.target.value)}
+                        placeholder={
+                          tempProvider === 'ollama'
+                            ? 'llama3.2 或 llama3:8b'
+                            : 'gpt-4o-mini 或 deepseek-chat'
+                        }
+                        className="w-full p-2 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-zinc-500 font-mono"
+                      />
+                    </div>
+
+                    {tempProvider === 'custom_llm' && (
+                      <div>
+                        <label className="block text-[11px] font-medium text-zinc-600 mb-1">
+                          API Key
+                        </label>
+                        <input
+                          type="password"
+                          value={tempApiKey}
+                          onChange={(e) => setTempApiKey(e.target.value)}
+                          placeholder="sk-..."
+                          className="w-full p-2 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-zinc-500 font-mono"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 px-6 border-t border-zinc-200 bg-zinc-50/70 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(false)}
+                className="px-4 py-2 text-xs rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition-colors cursor-pointer font-medium"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveSettings}
+                className="px-4 py-2 text-xs rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white transition-colors cursor-pointer font-medium flex items-center gap-1.5 shadow-xs"
+              >
+                <Check className="w-3.5 h-3.5" />
+                儲存設定並立即翻譯
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

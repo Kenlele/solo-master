@@ -21,7 +21,7 @@ export function useAgentStream() {
         return;
       }
 
-      const { translationsCache, setTranslation, appendTranslationStream } = useReaderStore.getState();
+      const { translationsCache, setTranslation, appendTranslationStream, translationSettings } = useReaderStore.getState();
 
       // Check cache unless forced: verify cache exists and is completed
       const cached = translationsCache[pageNumber];
@@ -53,6 +53,8 @@ export function useAgentStream() {
           body: JSON.stringify({
             pageNumber,
             text,
+            systemPrompt: translationSettings?.systemPrompt,
+            settings: translationSettings,
           }),
           signal: abortControllerRef.current.signal,
         });
@@ -137,6 +139,8 @@ export function useAgentStream() {
       setIsStreaming(true);
       onStart();
 
+      const { translationSettings } = useReaderStore.getState();
+
       try {
         const response = await fetch('/api/agent/stream', {
           method: 'POST',
@@ -145,6 +149,8 @@ export function useAgentStream() {
             pageNumber: 0,
             text,
             isCustom: true,
+            systemPrompt: translationSettings?.systemPrompt,
+            settings: translationSettings,
           }),
           signal: abortControllerRef.current.signal,
         });

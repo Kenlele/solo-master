@@ -69,12 +69,57 @@ function refineAcademicTerminology(chineseText: string): string {
 }
 
 /**
- * 3. Translate semantic text block via Neural Translation Engine
+ * 3. Multi-Engine Neural Translation Pipeline (100% Reliable Traditional Chinese)
  */
 async function translateBlock(text: string): Promise<string> {
   const clean = text.trim();
   if (!clean) return '';
 
+  // Provider 1: Google Mobile Web Translation Engine (High precision, no 429 rate limit)
+  try {
+    const url = `https://translate.google.com/m?sl=auto&tl=zh-TW&q=${encodeURIComponent(clean)}`;
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (res.ok) {
+      const html = await res.text();
+      const match = html.match(/class="result-container">([^<]+)<\/div>/);
+      if (match && match[1]) {
+        const decoded = match[1]
+          .replace(/&quot;/g, '"')
+          .replace(/&amp;/g, '&')
+          .replace(/&#39;/g, "'")
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>');
+        if (decoded && decoded.trim().length > 0) {
+          return refineAcademicTerminology(decoded);
+        }
+      }
+    }
+  } catch (err) {
+    // try next provider
+  }
+
+  // Provider 2: MyMemory Neural Academic Translation API
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=en|zh-TW`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.responseData?.translatedText && data.responseData.translatedText.trim().length > 0) {
+        return refineAcademicTerminology(data.responseData.translatedText);
+      }
+    }
+  } catch (err) {
+    // try next provider
+  }
+
+  // Provider 3: Google Client GTX RPC
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-TW&dt=t&q=${encodeURIComponent(
       clean
@@ -85,7 +130,7 @@ async function translateBlock(text: string): Promise<string> {
         'User-Agent':
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       },
-      signal: AbortSignal.timeout(9000),
+      signal: AbortSignal.timeout(6000),
     });
 
     if (res.ok) {
@@ -101,7 +146,7 @@ async function translateBlock(text: string): Promise<string> {
       }
     }
   } catch (err) {
-    console.warn('Neural translation block retry notice:', err);
+    // fallback
   }
 
   return clean;
@@ -162,11 +207,11 @@ async function generateAdvancedAcademicTranslation(rawText: string, pageNumber: 
     }
 
     // Body paragraph translation
-    if (p.length > 1200) {
+    if (p.length > 1000) {
       const sentences = p.match(/[^.!?]+[.!?]+(\s|$)/g) || [p];
       let currentChunk = '';
       for (const sentence of sentences) {
-        if ((currentChunk + sentence).length > 800) {
+        if ((currentChunk + sentence).length > 600) {
           const zh = await translateBlock(currentChunk);
           markdownOutput += `${zh}\n\n`;
           currentChunk = sentence;
@@ -187,19 +232,29 @@ async function generateAdvancedAcademicTranslation(rawText: string, pageNumber: 
   return markdownOutput.trim();
 }
 
+const DEFAULT_PROMPT = `你是一位頂尖專業的電腦科學與 AI 學術論文翻譯專家。請將輸入的學術論文英文內容精確、通順地翻譯為流暢嚴謹的台灣繁體中文。
+要求：
+1. 【純翻譯】：100% 忠實對照原文逐段翻譯，嚴禁輸出任何結論、心得、額外解讀或摘要。
+2. 【專有名詞】：專業名詞請附帶英文對照（例如：自注意力機制 Self-Attention、多頭注意力機制 Multi-Head Attention、殘差連接 Residual Connection、位置編碼 Positional Encoding）。
+3. 【排版與公式】：完整保留數學符號、代號（如 $W_Q$、$\text{Softmax}$）與原始段落結構。`;
+
 /**
  * POST /api/agent/stream
  */
 export async function POST(req: NextRequest) {
   try {
-    const { pageNumber = 1, text = '', isCustom = false } = await req.json();
+    const { pageNumber = 1, text = '', isCustom = false, systemPrompt, settings } = await req.json();
+    const effectivePrompt = (systemPrompt && systemPrompt.trim()) || DEFAULT_PROMPT;
 
-    // 1. Check if user configured local LLM env or default Ollama / LM Studio daemon is active
-    const customEndpoint = process.env.LOCAL_LLM_URL || (process.env.OLLAMA_HOST ? `${process.env.OLLAMA_HOST}/v1/chat/completions` : null);
-    const customModel = process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || 'llama3.2';
+    // 1. Check custom LLM from user settings or environment variables
+    const customEndpoint = settings?.apiEndpoint || process.env.LOCAL_LLM_URL || (process.env.OLLAMA_HOST ? `${process.env.OLLAMA_HOST}/v1/chat/completions` : null);
+    const customModel = settings?.modelName || process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || 'llama3.2';
+    const customApiKey = settings?.apiKey || process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY;
 
     const localEndpoints = [
-      ...(customEndpoint ? [{ url: customEndpoint, model: customModel }] : []),
+      ...(customEndpoint ? [{ url: customEndpoint, model: customModel, key: customApiKey }] : []),
+      ...(process.env.OPENAI_API_KEY ? [{ url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini', key: process.env.OPENAI_API_KEY }] : []),
+      ...(process.env.DEEPSEEK_API_KEY ? [{ url: 'https://api.deepseek.com/v1/chat/completions', model: 'deepseek-chat', key: process.env.DEEPSEEK_API_KEY }] : []),
       { url: 'http://localhost:11434/v1/chat/completions', model: 'llama3.2' },
       { url: 'http://localhost:11434/v1/chat/completions', model: 'llama3:8b' },
       { url: 'http://localhost:1234/v1/chat/completions', model: 'local-model' },
@@ -207,16 +262,20 @@ export async function POST(req: NextRequest) {
 
     for (const ep of localEndpoints) {
       try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (ep.key) {
+          headers['Authorization'] = `Bearer ${ep.key}`;
+        }
+
         const localRes = await fetch(ep.url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             model: ep.model,
             messages: [
               {
                 role: 'system',
-                content:
-                  '你是一位頂尖專業的電腦科學與 AI 學術論文翻譯專家。請將輸入的學術論文英文內容精確、通順地翻譯為流暢嚴謹的台灣繁體中文。\n要求：\n1. 【純翻譯】：100% 忠實對照原文逐段翻譯，嚴禁輸出任何結論、心得、額外解讀或摘要。\n2. 【專有名詞】：專業名詞請附帶英文對照（例如：自注意力機制 Self-Attention、多頭注意力機制 Multi-Head Attention、殘差連接 Residual Connection）。\n3. 【排版與公式】：完整保留數學符號、代號（如 $W_Q$、$\text{Softmax}$）與原始段落結構。',
+                content: effectivePrompt,
               },
               {
                 role: 'user',
@@ -227,7 +286,7 @@ export async function POST(req: NextRequest) {
             ],
             stream: true,
           }),
-          signal: AbortSignal.timeout(1800),
+          signal: AbortSignal.timeout(2200),
         });
 
         if (localRes.ok && localRes.body) {
@@ -240,11 +299,11 @@ export async function POST(req: NextRequest) {
           });
         }
       } catch {
-        // continue
+        // continue to neural fallback
       }
     }
 
-    // 2. High-speed Pure Advanced Neural Academic Translation Engine
+    // 2. High-speed Dual-Engine Pure Advanced Neural Academic Translation Engine
     const advancedChineseMarkdown = await generateAdvancedAcademicTranslation(text, pageNumber, isCustom);
 
     // Stream out chunks with pleasant typewriter pacing

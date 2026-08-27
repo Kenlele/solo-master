@@ -46,6 +46,14 @@ export interface TranslationItem {
   timestamp: number;
 }
 
+export interface TranslationSettings {
+  systemPrompt: string;
+  provider: 'auto' | 'custom_llm' | 'openai' | 'gemini' | 'deepseek' | 'anthropic' | 'ollama';
+  apiKey?: string;
+  apiEndpoint?: string;
+  modelName?: string;
+}
+
 export interface ReaderState {
   // PDF File & Doc
   file: PDFFileInfo | null;
@@ -71,6 +79,7 @@ export interface ReaderState {
   extractedPages: Record<number, string>;
   translationsCache: Record<number, TranslationItem>;
   isStreaming: boolean;
+  translationSettings: TranslationSettings;
   
   // Actions
   setFile: (file: PDFFileInfo | null) => void;
@@ -80,6 +89,7 @@ export interface ReaderState {
   setRotation: (rotation: number | ((prev: number) => number)) => void;
   setSplitRatio: (ratio: number) => void;
   setIsLeftSidebarOpen: (isOpen: boolean) => void;
+  setTranslationSettings: (settings: Partial<TranslationSettings>) => void;
   
   // Annotation Actions
   setActiveDrawingTool: (tool: DrawingTool) => void;
