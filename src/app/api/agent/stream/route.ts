@@ -33,17 +33,37 @@ function preprocessAcademicText(rawText: string): string {
 function refineAcademicTerminology(chineseText: string): string {
   let refined = chineseText
     .replace(/殘留連接/g, '殘差連接 (Residual Connection)')
+    .replace(/殘差網絡/g, '殘差網路 (ResNet)')
     .replace(/層歸一化/g, '層正規化 (Layer Normalization)')
     .replace(/自我注意力/g, '自注意力機制 (Self-Attention)')
     .replace(/多頭部注意力/g, '多頭注意力機制 (Multi-Head Attention)')
+    .replace(/縮放點積注意力/g, '縮放點積注意力 (Scaled Dot-Product Attention)')
+    .replace(/位置編碼/g, '位置編碼 (Positional Encoding)')
+    .replace(/前饋神經網絡/g, '前饋神經網路 (Feed-Forward Neural Network)')
+    .replace(/前饋網絡/g, '前饋網路 (Feed-Forward Network)')
     .replace(/最先進技術/g, '當前最佳水準 (SOTA)')
     .replace(/最先進的水準/g, '當前最佳水準 (SOTA)')
     .replace(/消融研究/g, '消融實驗 (Ablation Study)')
+    .replace(/消融實驗/g, '消融實驗 (Ablation Study)')
     .replace(/基準面/g, '基準測試 (Benchmark)')
     .replace(/反向傳播算法/g, '反向傳播 (Backpropagation)')
     .replace(/過度擬合/g, '過擬合 (Overfitting)')
     .replace(/欠擬合/g, '欠擬合 (Underfitting)')
-    .replace(/超參數設置/g, '超參數設定 (Hyperparameters)');
+    .replace(/超參數設置/g, '超參數設定 (Hyperparameters)')
+    .replace(/特徵提取/g, '特徵提取 (Feature Extraction)')
+    .replace(/嵌入向量/g, '嵌入向量 (Embeddings)')
+    .replace(/嵌入層/g, '嵌入層 (Embedding Layer)')
+    .replace(/梯度消失/g, '梯度消失 (Vanishing Gradient)')
+    .replace(/梯度爆炸/g, '梯度爆炸 (Exploding Gradient)')
+    .replace(/學習率/g, '學習率 (Learning Rate)')
+    .replace(/批次大小/g, '批次大小 (Batch Size)')
+    .replace(/微調/g, '微調 (Fine-Tuning)')
+    .replace(/預訓練/g, '預訓練 (Pre-training)')
+    .replace(/推論/g, '推論 (Inference)')
+    .replace(/權重矩陣/g, '權重矩陣 (Weight Matrix)')
+    .replace(/激活函數/g, '激活函數 (Activation Function)')
+    .replace(/損失函數/g, '損失函數 (Loss Function)')
+    .replace(/正則化/g, '正規化 (Regularization)');
 
   return refined;
 }
@@ -114,12 +134,12 @@ function formatSectionHeading(rawHeading: string): string | null {
 }
 
 /**
- * 5. Main Academic Translation Pipeline
+ * 5. Pure Academic Translation Pipeline (Faithful 100% translation, no speculative conclusion)
  */
-async function generateAdvancedAcademicTranslation(rawText: string, pageNumber: number): Promise<string> {
+async function generateAdvancedAcademicTranslation(rawText: string, pageNumber: number, isCustom: boolean = false): Promise<string> {
   const cleaned = preprocessAcademicText(rawText);
   if (!cleaned) {
-    return '*(此頁面無可提取的文字內容或為純圖像/圖表)*';
+    return '*(無可提取的文字內容或為純圖像)*';
   }
 
   const rawParagraphs = cleaned
@@ -127,7 +147,9 @@ async function generateAdvancedAcademicTranslation(rawText: string, pageNumber: 
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
 
-  let markdownOutput = `### 📄 第 ${pageNumber} 頁 學術繁體中文對照翻譯\n\n`;
+  let markdownOutput = isCustom 
+    ? '' 
+    : (pageNumber > 0 ? `### 📄 第 ${pageNumber} 頁 學術繁體中文對照翻譯\n\n` : '');
 
   for (let i = 0; i < rawParagraphs.length; i++) {
     const p = rawParagraphs[i];
@@ -162,25 +184,7 @@ async function generateAdvancedAcademicTranslation(rawText: string, pageNumber: 
     }
   }
 
-  // 6. Deep Structural Takeaways & Academic Digest
-  markdownOutput += `---\n\n#### 💡 本頁深度導讀與核心提煉\n\n`;
-
-  const lower = cleaned.toLowerCase();
-
-  if (lower.includes('abstract') || pageNumber === 1) {
-    markdownOutput += `> 🎯 **論文核心目標 (Main Objective)**\n> 本篇論文針對現有序列轉導模型（如 RNN / CNN）在計算依賴與長程依賴上的局限性，提出了具突破性的全新模型架構。\n\n`;
-    markdownOutput += `> ⚡ **架構創新亮點 (Key Novelty)**\n> 完全捨棄傳統的循環（Recurrence）與卷積結構，100% 依賴注意力機制（Attention Mechanism）建立全域序列對應關係，具備極高的並行運算能力。\n\n`;
-  } else if (lower.includes('architecture') || lower.includes('encoder') || lower.includes('attention')) {
-    markdownOutput += `> ⚙️ **核心演算法機制 (Algorithm & Mechanism)**\n> 本頁深入闡述了神經網路核心運算層設計，包含多頭注意力（Multi-Head Attention）、縮放點積運算、前饋網路（FFN）以及殘差連接與層正規化（LayerNorm）之協同運作。\n\n`;
-  } else if (lower.includes('experiment') || lower.includes('table') || lower.includes('bleu') || lower.includes('result')) {
-    markdownOutput += `> 📊 **實驗數據與成果 (Empirical Findings)**\n> 本頁展示了在標準學術基準資料集上的實驗數據對比，在大幅縮短訓練時間與運算資源的同時，達到領先現有 SOTA 水準的評估成績。\n\n`;
-  } else {
-    markdownOutput += `> 📖 **本頁段落主旨 (Section Summary)**\n> 詳細說明第 ${pageNumber} 頁之數學公式定義、理論推導脈絡與技術實現細節。\n\n`;
-  }
-
-  markdownOutput += `📌 **閱讀標記提示**：您可以在左側 PDF 原文中使用「🖍️ 螢光筆」塗抹重點，筆記會自動保存於左側紀錄列表。`;
-
-  return markdownOutput;
+  return markdownOutput.trim();
 }
 
 /**
@@ -188,7 +192,7 @@ async function generateAdvancedAcademicTranslation(rawText: string, pageNumber: 
  */
 export async function POST(req: NextRequest) {
   try {
-    const { pageNumber = 1, text = '' } = await req.json();
+    const { pageNumber = 1, text = '', isCustom = false } = await req.json();
 
     // 1. Check if user configured local LLM env or default Ollama / LM Studio daemon is active
     const customEndpoint = process.env.LOCAL_LLM_URL || (process.env.OLLAMA_HOST ? `${process.env.OLLAMA_HOST}/v1/chat/completions` : null);
@@ -212,11 +216,13 @@ export async function POST(req: NextRequest) {
               {
                 role: 'system',
                 content:
-                  '你是一位頂尖的資深 AI 與電腦科學學術論文翻譯專家。請將英文論文內容翻譯為流暢、嚴謹的繁體中文（台灣學術習慣用語）。要求：\n1. 專有名詞保留中英對照（例如：多頭注意力機制 Multi-Head Attention）。\n2. 語句通順，符合專業學術閱讀習慣。\n3. 文末附上結構化【本頁深度導讀與核心提煉】。',
+                  '你是一位頂尖專業的電腦科學與 AI 學術論文翻譯專家。請將輸入的學術論文英文內容精確、通順地翻譯為流暢嚴謹的台灣繁體中文。\n要求：\n1. 【純翻譯】：100% 忠實對照原文逐段翻譯，嚴禁輸出任何結論、心得、額外解讀或摘要。\n2. 【專有名詞】：專業名詞請附帶英文對照（例如：自注意力機制 Self-Attention、多頭注意力機制 Multi-Head Attention、殘差連接 Residual Connection）。\n3. 【排版與公式】：完整保留數學符號、代號（如 $W_Q$、$\text{Softmax}$）與原始段落結構。',
               },
               {
                 role: 'user',
-                content: `請專業翻譯以下第 ${pageNumber} 頁論文內容：\n\n${text}`,
+                content: isCustom 
+                  ? `請專業純翻譯以下內容為繁體中文：\n\n${text}`
+                  : `請專業純翻譯以下第 ${pageNumber} 頁論文內容為繁體中文：\n\n${text}`,
               },
             ],
             stream: true,
@@ -238,8 +244,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. High-speed Advanced Neural Academic Translation Engine
-    const advancedChineseMarkdown = await generateAdvancedAcademicTranslation(text, pageNumber);
+    // 2. High-speed Pure Advanced Neural Academic Translation Engine
+    const advancedChineseMarkdown = await generateAdvancedAcademicTranslation(text, pageNumber, isCustom);
 
     // Stream out chunks with pleasant typewriter pacing
     const chunks = advancedChineseMarkdown.split(/(?<=[，。！？\n\s>])/);
@@ -255,7 +261,7 @@ export async function POST(req: NextRequest) {
             choices: [{ delta: { content: chunk } }],
           })}\n\n`;
           controller.enqueue(encoder.encode(payload));
-          await new Promise((r) => setTimeout(r, 8)); // Smooth high-speed typewriter stream
+          await new Promise((r) => setTimeout(r, 6)); // Smooth high-speed typewriter stream
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();

@@ -116,8 +116,97 @@ export function useAgentStream() {
     []
   );
 
+  /**
+   * Translate custom user input text directly
+   */
+  const translateCustomText = useCallback(
+    async (
+      text: string,
+      onChunk: (chunk: string) => void,
+      onStart: () => void,
+      onComplete: () => void,
+      onError: (err: string) => void
+    ) => {
+      if (!text || text.trim().length === 0) return;
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
+      setIsStreaming(true);
+      onStart();
+
+      try {
+        const response = await fetch('/api/agent/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pageNumber: 0,
+            text,
+            isCustom: true,
+          }),
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        if (!response.body) {
+          throw new Error('No response body from agent');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let done = false;
+        let buffer = '';
+
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+
+          if (value) {
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed || trimmed.startsWith(':')) continue;
+              if (trimmed === 'data: [DONE]') break;
+
+              if (trimmed.startsWith('data: ')) {
+                const jsonStr = trimmed.slice(6);
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const contentChunk = parsed.choices?.[0]?.delta?.content || '';
+                  if (contentChunk) {
+                    onChunk(contentChunk);
+                  }
+                } catch {
+                  // ignore
+                }
+              }
+            }
+          }
+        }
+
+        onComplete();
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+        console.error('Custom translation error:', err);
+        onError(err?.message || '翻譯失敗，請點擊重試。');
+      } finally {
+        setIsStreaming(false);
+      }
+    },
+    []
+  );
+
   return {
     isStreaming,
     translatePage,
+    translateCustomText,
   };
 }
