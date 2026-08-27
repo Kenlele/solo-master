@@ -60,7 +60,7 @@ export function LeftSidebar() {
         const arrayBuffer = await res.arrayBuffer();
         const serverPath = res.headers.get('X-File-Path');
         const resolvedPath = serverPath ? decodeURIComponent(serverPath) : item.filePath;
-        await loadPdf(arrayBuffer, item.name, resolvedPath);
+        await loadPdf(arrayBuffer, item.name, resolvedPath, item.id);
         setLoadingDocId(null);
         return;
       }
@@ -68,16 +68,16 @@ export function LeftSidebar() {
       // 2. Priority 2: Load from IndexedDB local binary cache
       const cachedBuffer = await getPdfFromStorage(item.id);
       if (cachedBuffer) {
-        await loadPdf(cachedBuffer, item.name, item.filePath);
+        await loadPdf(cachedBuffer, item.name, item.filePath, item.id);
         setLoadingDocId(null);
         return;
       }
 
       // 3. Priority 3: In-memory buffer or remote URL
       if (item.url) {
-        await loadPdf(item.url, item.name, item.filePath);
+        await loadPdf(item.url, item.name, item.filePath, item.id);
       } else if (item.arrayBuffer) {
-        await loadPdf(item.arrayBuffer, item.name, item.filePath);
+        await loadPdf(item.arrayBuffer, item.name, item.filePath, item.id);
       } else {
         alert(`未能在本地暫存區或磁碟中找到「${item.name}」，請將該 PDF 重新拖入視窗中開啟。`);
       }

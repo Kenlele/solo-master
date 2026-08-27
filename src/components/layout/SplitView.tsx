@@ -5,26 +5,69 @@ import { useReaderStore } from '@/store/useReaderStore';
 import { LeftSidebar } from './LeftSidebar';
 import { PDFViewer } from '../pdf/PDFViewer';
 import { TranslationView } from '../agent/TranslationView';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Upload } from 'lucide-react';
+import { usePDFViewer } from '@/hooks/usePDFViewer';
 
 export function SplitView() {
   const { splitRatio, setSplitRatio } = useReaderStore();
+  const { loadPdf } = usePDFViewer();
   const containerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isWindowDragOver, setIsWindowDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
 
-  // Prevent browser default behavior of navigating away when dropping files outside DropZone
+  // Global window drag and drop listener for instant PDF loading from anywhere
   useEffect(() => {
-    const preventDragDefault = (e: DragEvent) => {
+    const handleDragEnter = (e: DragEvent) => {
       e.preventDefault();
+      dragCounterRef.current += 1;
+      if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+        setIsWindowDragOver(true);
+      }
     };
-    window.addEventListener('dragover', preventDragDefault);
-    window.addEventListener('drop', preventDragDefault);
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounterRef.current -= 1;
+      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current = 0;
+        setIsWindowDragOver(false);
+      }
+    };
+
+    const handleDrop = async (e: DragEvent) => {
+      e.preventDefault();
+      dragCounterRef.current = 0;
+      setIsWindowDragOver(false);
+
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+          await loadPdf(file);
+        }
+      }
+    };
+
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
     return () => {
-      window.removeEventListener('dragover', preventDragDefault);
-      window.removeEventListener('drop', preventDragDefault);
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
     };
-  }, []);
+  }, [loadPdf]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -100,6 +143,19 @@ export function SplitView() {
           <TranslationView />
         </div>
       </div>
+
+      {/* Global Drag & Drop Overlay Indicator */}
+      {isWindowDragOver && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center pointer-events-none transition-all">
+          <div className="p-8 rounded-2xl bg-white border-2 border-dashed border-zinc-800 shadow-2xl flex flex-col items-center gap-3 text-center max-w-md mx-4">
+            <div className="w-14 h-14 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-900 shadow-inner">
+              <Upload className="w-7 h-7 animate-bounce" />
+            </div>
+            <div className="text-base font-bold text-zinc-900">放開以開啟新論文 PDF</div>
+            <div className="text-xs text-zinc-500">當前論文進度與筆記將自動保存於歷史紀錄中</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

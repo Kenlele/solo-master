@@ -37,6 +37,19 @@ export const useReaderStore = create<ReaderState>()(
 
       // Actions
       setFile: (file: PDFFileInfo | null) => {
+        const prevFile = get().file;
+        const prevPage = get().currentPage;
+        if (prevFile) {
+          get().addOrUpdateHistory({
+            id: prevFile.id,
+            name: prevFile.name,
+            lastReadPage: prevPage,
+            lastReadTime: Date.now(),
+            filePath: prevFile.filePath,
+            totalPages: prevFile.totalPages,
+          });
+        }
+
         if (!file) {
           set({
             file: null,

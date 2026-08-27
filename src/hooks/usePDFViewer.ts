@@ -39,7 +39,7 @@ export function usePDFViewer() {
    * Load PDF from File, ArrayBuffer, or URL with local filePath support & auto local folder caching
    */
   const loadPdf = useCallback(
-    async (source: File | ArrayBuffer | string, customName?: string, customFilePath?: string) => {
+    async (source: File | ArrayBuffer | string, customName?: string, customFilePath?: string, customDocId?: string) => {
       setIsLoading(true);
       setError(null);
 
@@ -64,7 +64,7 @@ export function usePDFViewer() {
         let arrayBuffer: ArrayBuffer | undefined;
         let fileName = customName || 'paper.pdf';
         let fileSize = 0;
-        let docId = '';
+        let docId = customDocId || '';
         let resolvedFilePath = customFilePath;
 
         let loadingTask;
@@ -72,10 +72,19 @@ export function usePDFViewer() {
         if (source instanceof File) {
           fileName = source.name;
           fileSize = source.size;
-          docId = `doc-${source.name}-${source.size}`;
-          arrayBuffer = await source.arrayBuffer();
+          docId = customDocId || `doc-${source.name}-${source.size}`;
+          
+          const rawBuffer = await source.arrayBuffer();
+          // Clone buffers safely: one for PDF.js worker (may be detached) and one for storage
+          const bufferForPdf = rawBuffer.slice(0);
+          const bufferForStorage = rawBuffer.slice(0);
+          arrayBuffer = bufferForStorage;
+
+          // Save to IndexedDB immediately before worker detachment
+          savePdfToStorage(docId, bufferForStorage);
+
           loadingTask = pdfjs.getDocument({
-            data: new Uint8Array(arrayBuffer),
+            data: new Uint8Array(bufferForPdf),
             cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
             cMapPacked: true,
           });
@@ -93,24 +102,35 @@ export function usePDFViewer() {
                 const data = await res.json();
                 if (data.storagePath) {
                   resolvedFilePath = data.storagePath;
+                  useReaderStore.getState().addOrUpdateHistory({
+                    id: docId,
+                    name: fileName,
+                    filePath: data.storagePath,
+                  });
                 }
               }
             }).catch(() => {});
           } catch {}
 
         } else if (source instanceof ArrayBuffer) {
-          arrayBuffer = source;
           fileSize = source.byteLength;
-          docId = `doc-${fileName}-${fileSize}`;
+          docId = customDocId || `doc-${fileName}-${fileSize}`;
+
+          const bufferForPdf = source.slice(0);
+          const bufferForStorage = source.slice(0);
+          arrayBuffer = bufferForStorage;
+
+          savePdfToStorage(docId, bufferForStorage);
+
           loadingTask = pdfjs.getDocument({
-            data: new Uint8Array(source),
+            data: new Uint8Array(bufferForPdf),
             cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
             cMapPacked: true,
           });
 
           // Upload/copy arrayBuffer to server storage
           try {
-            const blob = new Blob([source], { type: 'application/pdf' });
+            const blob = new Blob([bufferForStorage], { type: 'application/pdf' });
             const formData = new FormData();
             formData.append('file', blob, fileName);
             formData.append('id', docId);
@@ -122,6 +142,11 @@ export function usePDFViewer() {
                 const data = await res.json();
                 if (data.storagePath) {
                   resolvedFilePath = data.storagePath;
+                  useReaderStore.getState().addOrUpdateHistory({
+                    id: docId,
+                    name: fileName,
+                    filePath: data.storagePath,
+                  });
                 }
               }
             }).catch(() => {});
@@ -130,7 +155,7 @@ export function usePDFViewer() {
         } else {
           // Remote URL or local API URL
           fileName = customName || source.split('/').pop() || 'paper.pdf';
-          docId = `doc-${fileName}`;
+          docId = customDocId || `doc-${fileName}`;
           loadingTask = pdfjs.getDocument({
             url: source,
             cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
@@ -140,11 +165,6 @@ export function usePDFViewer() {
 
         const doc = await loadingTask.promise;
         activePdfDoc = doc;
-
-        // If arrayBuffer was loaded or fetched, store it in IndexedDB
-        if (arrayBuffer) {
-          savePdfToStorage(docId, arrayBuffer);
-        }
 
         setFile({
           id: docId,

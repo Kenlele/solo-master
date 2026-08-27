@@ -47,10 +47,20 @@ export function PDFViewer() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to top when new file is loaded
+  // Scroll to target page when new file is loaded (restores last read page)
   useEffect(() => {
     if (file && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = 0;
+      if (currentPage > 1) {
+        const timer = setTimeout(() => {
+          const pageEl = document.getElementById(`pdf-page-${currentPage}`);
+          if (pageEl) {
+            pageEl.scrollIntoView({ behavior: 'auto', block: 'start' });
+          }
+        }, 80);
+        return () => clearTimeout(timer);
+      } else {
+        scrollContainerRef.current.scrollTop = 0;
+      }
     }
   }, [file?.id]);
 
