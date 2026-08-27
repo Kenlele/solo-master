@@ -245,48 +245,35 @@ export async function POST(req: NextRequest) {
   try {
     const { pageNumber = 1, text = '', isCustom = false, systemPrompt, settings } = await req.json();
     const effectivePrompt = (systemPrompt && systemPrompt.trim()) || DEFAULT_PROMPT;
+    const provider = settings?.provider || 'auto';
 
-    // 1. Check custom LLM from user settings or environment variables
-    const customEndpoint = settings?.apiEndpoint || process.env.LOCAL_LLM_URL || (process.env.OLLAMA_HOST ? `${process.env.OLLAMA_HOST}/v1/chat/completions` : null);
-    const customModel = settings?.modelName || process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || 'llama3.2';
-    const customApiKey = settings?.apiKey || process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY;
+    // 1. If user explicitly configured Local Ollama / LM Studio
+    if (provider === 'ollama') {
+      const ollamaEndpoint =
+        settings?.apiEndpoint ||
+        process.env.OLLAMA_HOST ||
+        process.env.LOCAL_LLM_URL ||
+        'http://127.0.0.1:11434/v1/chat/completions';
+      const ollamaModel = settings?.modelName || process.env.OLLAMA_MODEL || process.env.LOCAL_LLM_MODEL || 'llama3.2';
 
-    const localEndpoints = [
-      ...(customEndpoint ? [{ url: customEndpoint, model: customModel, key: customApiKey }] : []),
-      ...(process.env.OPENAI_API_KEY ? [{ url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini', key: process.env.OPENAI_API_KEY }] : []),
-      ...(process.env.DEEPSEEK_API_KEY ? [{ url: 'https://api.deepseek.com/v1/chat/completions', model: 'deepseek-chat', key: process.env.DEEPSEEK_API_KEY }] : []),
-      { url: 'http://localhost:11434/v1/chat/completions', model: 'llama3.2' },
-      { url: 'http://localhost:11434/v1/chat/completions', model: 'llama3:8b' },
-      { url: 'http://localhost:1234/v1/chat/completions', model: 'local-model' },
-    ];
-
-    for (const ep of localEndpoints) {
       try {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (ep.key) {
-          headers['Authorization'] = `Bearer ${ep.key}`;
-        }
-
-        const localRes = await fetch(ep.url, {
+        const localRes = await fetch(ollamaEndpoint, {
           method: 'POST',
-          headers,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: ep.model,
+            model: ollamaModel,
             messages: [
-              {
-                role: 'system',
-                content: effectivePrompt,
-              },
+              { role: 'system', content: effectivePrompt },
               {
                 role: 'user',
-                content: isCustom 
+                content: isCustom
                   ? `請專業純翻譯以下內容為繁體中文：\n\n${text}`
                   : `請專業純翻譯以下第 ${pageNumber} 頁論文內容為繁體中文：\n\n${text}`,
               },
             ],
             stream: true,
           }),
-          signal: AbortSignal.timeout(2200),
+          signal: AbortSignal.timeout(3000),
         });
 
         if (localRes.ok && localRes.body) {
@@ -298,12 +285,65 @@ export async function POST(req: NextRequest) {
             },
           });
         }
-      } catch {
-        // continue to neural fallback
+      } catch (err) {
+        console.warn('[Ollama Engine] Local connection fallback:', err);
       }
     }
 
-    // 2. High-speed Dual-Engine Pure Advanced Neural Academic Translation Engine
+    // 2. If user configured Custom LLM (OpenAI / DeepSeek / Claude / Compatible API)
+    if (provider === 'custom_llm') {
+      const apiEndpoint =
+        settings?.apiEndpoint ||
+        process.env.LOCAL_LLM_URL ||
+        (process.env.DEEPSEEK_API_KEY
+          ? 'https://api.deepseek.com/v1/chat/completions'
+          : 'https://api.openai.com/v1/chat/completions');
+      const modelName =
+        settings?.modelName ||
+        process.env.LOCAL_LLM_MODEL ||
+        (process.env.DEEPSEEK_API_KEY ? 'deepseek-chat' : 'gpt-4o-mini');
+      const apiKey = settings?.apiKey || process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY || '';
+
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (apiKey) {
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+
+        const llmRes = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              { role: 'system', content: effectivePrompt },
+              {
+                role: 'user',
+                content: isCustom
+                  ? `請專業純翻譯以下內容為繁體中文：\n\n${text}`
+                  : `請專業純翻譯以下第 ${pageNumber} 頁論文內容為繁體中文：\n\n${text}`,
+              },
+            ],
+            stream: true,
+          }),
+          signal: AbortSignal.timeout(12000),
+        });
+
+        if (llmRes.ok && llmRes.body) {
+          return new Response(llmRes.body, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
+          });
+        }
+      } catch (err) {
+        console.warn('[Custom LLM] Request fallback:', err);
+      }
+    }
+
+    // 3. High-Speed Standalone Pure Neural Academic Translation Engine (Default - 100% Free & Standalone)
     const advancedChineseMarkdown = await generateAdvancedAcademicTranslation(text, pageNumber, isCustom);
 
     // Stream out chunks with pleasant typewriter pacing
